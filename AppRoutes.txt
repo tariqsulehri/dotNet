@@ -1,0 +1,83 @@
+import React, { Component } from 'react';
+import axios from 'axios';
+import {loginUser} from './HelperFunctions';
+import {Globals} from './constants';
+const queryString = require('query-string');
+
+
+
+
+class Cgauth extends Component {
+	constructor(props) {
+        super(props);
+        this.state = {
+        };
+
+        this.apiPath = Globals.NodeApi+"api/";
+    };
+
+    async componentWillMount(){
+        let cgObject = JSON.parse(localStorage.getItem('cgObject'))
+        localStorage.removeItem('cgObject');
+
+
+        if(cgObject){
+            let params = queryString.parse(this.props.location.search)
+            let phone = '';
+            let serverResponse = {};
+
+            if(cgObject.telco === 'ooredoo_kw' || cgObject.telco === 'bbh' || cgObject.telco === 'viva'){
+                // const parsed = queryString.parse(params);
+                if(params.CGMSISDN){
+                    phone = params.CGMSISDN;
+                    try {
+                        const url = this.apiPath + "login_or_sendpin?telco="+cgObject.telco +"&phone="+phone;
+                        serverResponse = await axios.get(url, {});
+                        serverResponse = serverResponse.data;
+                    } catch (err) { 
+                        console.log("Error logging in", err); 
+                    };
+
+                    if (serverResponse) {
+                        let generic_response = {}
+                        if(Object.keys(serverResponse).length === 0 && serverResponse.constructor === Object){
+                        }
+                        else if (!serverResponse.status) {
+                        } else {
+                            generic_response =    serverResponse.generic_response;
+                        };
+                        if (generic_response.subscribed) {
+                            generic_response.phone = phone;
+                            localStorage.setItem('user_logged_in', true);
+                            localStorage.setItem('user', JSON.stringify(generic_response));
+                            loginUser(generic_response);
+
+                            window.location.href = cgObject.referer;
+                            return false;//remove this
+                        }
+                    }
+                    
+                }
+            }
+
+        }
+
+
+        // as default redirect to home
+        window.location.href='/login'
+    }
+
+  render() {
+    return(
+      <section id="main-section" className="px-lg-0 jc-inner-page align-self-start">
+        <div className="main-loader card min-height-80vh">
+            <img width="64" height="64" src="/images/loader_v2.gif" alt="" />
+        </div>
+      </section>
+    )
+  }
+
+}
+
+
+export default Cgauth;
